@@ -88,9 +88,9 @@ describe("activity cancellation types", () => {
   it("WAIT_CANCELLATION_COMPLETED for heartbeating activity: the activity learns about it and the workflow gets a cancellation", async () => {
     const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingWithSleep");
 
+    expect(r.result).toBe("rejected: cancelled");
     expect(r.workflowWaitedMs).toBeLessThan(ACTIVITY_MS - 2_000); // stopped early
     expect(r.activity.sawCancellation).toBe(true);
-    expect(r.result).toBe("rejected: cancelled");
   });
 
   it("TRY_CANCEL for heartbeating activity: throws right away, the activity terminates earlier", async () => {

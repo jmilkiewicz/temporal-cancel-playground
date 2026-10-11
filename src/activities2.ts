@@ -3,13 +3,6 @@ import { probe } from "./probe";
 
 
 
-export const activities = {
-  slow: slow,
-  slowHeartbeating: slowHeartbeating,
-  heartbeatingWithSleep: heartbeatingWithSleep,
-};
-
-
 /** Never heartbeats, so it can never learn about a cancellation request. */
 export async function slow(ms: number): Promise<string> {
   probe.started.resolve();
@@ -28,7 +21,6 @@ export async function slowHeartbeating(ms: number): Promise<string> {
   try {
     while (Date.now() < end) {
       heartbeat();
-      //await sleep(200); // activity sleep: rejects with CancelledFailure on cancellation
     }
 
     const res = await fetch("https://www.google.com/");
