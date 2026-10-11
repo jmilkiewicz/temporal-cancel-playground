@@ -1,17 +1,18 @@
 import { cancellationSignal, heartbeat, sleep } from "@temporalio/activity";
 import { probe } from "./probe";
 
-
-
 /** Never heartbeats, so it can never learn about a cancellation request. */
 export async function slow(ms: number): Promise<string> {
   probe.started.resolve();
-  await new Promise((r) => setTimeout(r, ms)); // plain timer: ignores cancellation
-  probe.finished.resolve({
-    sawCancellation: cancellationSignal().aborted,
-    finishedAt: Date.now(),
-  });
-  return "done";
+  try {
+    await new Promise((r) => setTimeout(r, ms)); // plain timer: ignores cancellation
+    return "done";
+  } finally {
+    probe.finished.resolve({
+      sawCancellation: cancellationSignal().aborted,
+      finishedAt: Date.now(),
+    });
+  }
 }
 
 export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<string> {
@@ -34,7 +35,7 @@ export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<
   }
 }
 
-
+/** Records that it ran, so tests can tell whether the workflow managed to schedule it. */
 export async function cleanup(): Promise<string> {
   probe.cleanupCalls++;
   return "cleaned";
