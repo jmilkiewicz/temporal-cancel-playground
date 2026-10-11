@@ -5,10 +5,10 @@ import * as activities from "./activities";
 import { probe } from "./probe";
 import {
   ActivityName,
+  callTwice,
   cancelWorkflow,
   cancelWorkflowWithCleanup,
   Mode,
-  sleepBeforeActivityCall,
 } from "./workflows2";
 
 jest.setTimeout(60_000);
@@ -64,41 +64,30 @@ describe("cancelling the workflow itself", () => {
     return { outcome, status, workflowWaitedMs, activity, activityRanAfterCancelMs };
   }
 
-  async function cancelAndReport(
-    handle: Awaited<ReturnType<typeof testEnv.client.workflow.start>>,
+  async function startAndCancel<A extends unknown[]>(
+    workflow: (...args: A) => Promise<string>,
+    args: A,
   ) {
-    await handle.cancel();
-    let outcome: string;
-    try {
-      outcome = await handle.result();
-    } catch (err) {
-      outcome =
-        err instanceof WorkflowFailedError && err.cause instanceof CancelledFailure
-          ? "cancelled"
-          : `failed: ${String(err)}`;
-    }
-    const status = (await handle.describe()).status.name;
-    return { outcome, status };
-  }
-
-  async function run(mode: Mode, activityName: ActivityName) {
     probe.reset();
-    const handle = await testEnv.client.workflow.start(cancelWorkflow, {
-      args: [mode, activityName, ACTIVITY_MS],
+    const handle = await testEnv.client.workflow.start(workflow, {
+      args,
       taskQueue,
-      workflowId: `cancel-workflow-${mode}-${activityName}-${Date.now()}`,
+      workflowId: `${workflow.name}-${Date.now()}`,
     });
     return cancelWhileActivityRuns(handle);
   }
 
-  async function runWithCleanup(mode: Mode, activityName: ActivityName, protectCleanup: boolean) {
-    probe.reset();
-    const handle = await testEnv.client.workflow.start(cancelWorkflowWithCleanup, {
-      args: [mode, activityName, ACTIVITY_MS, protectCleanup],
-      taskQueue,
-      workflowId: `cancel-workflow-cleanup-${mode}-${activityName}-${protectCleanup}-${Date.now()}`,
-    });
-    return cancelWhileActivityRuns(handle);
+  function run(mode: Mode, activityName: ActivityName) {
+    return startAndCancel(cancelWorkflow, [mode, activityName, ACTIVITY_MS]);
+  }
+
+  function runWithCleanup(mode: Mode, activityName: ActivityName, protectCleanup: boolean) {
+    return startAndCancel(cancelWorkflowWithCleanup, [
+      mode,
+      activityName,
+      ACTIVITY_MS,
+      protectCleanup,
+    ]);
   }
 
   it("WAIT_CANCELLATION_COMPLETED + non-heartbeating activity: activity finishes, workflow COMPLETES", async () => {
@@ -148,24 +137,17 @@ describe("cancelling the workflow itself", () => {
     expect(r.activity.sawCancellation).toBe(false);
   });
 
-  it("BEFORE the activity starts: workflow is CANCELLED and the activity is never started", async () => {
-    probe.reset();
-    const handle = await testEnv.client.workflow.start(sleepBeforeActivityCall, {
-      args: ["WAIT_CANCELLATION_COMPLETED", "slow", ACTIVITY_MS, 1000],
-      taskQueue,
-      workflowId: `cancel-before-activity-${Date.now()}`,
-    });
-    await new Promise((r) => setTimeout(r, 500)); // let the workflow reach its timer
-
-    const r = await cancelAndReport(handle);
+  it("during 1st activity execution: workflow is CANCELLED and the 2nd activity is never started", async () => {
+    const r = await startAndCancel(callTwice, [
+      "WAIT_CANCELLATION_COMPLETED",
+      "heartbeatingWithIgnoringCancelSignal",
+      ACTIVITY_MS,
+    ]);
 
     expect(r.outcome).toBe("cancelled");
     expect(r.status).toBe("CANCELLED");
-    const activityStarted = await Promise.race([
-      probe.started.promise.then(() => true),
-      new Promise<boolean>((res) => setTimeout(() => res(false), 500)),
-    ]);
-    expect(activityStarted).toBe(false);
+    expect(r.activity.sawCancellation).toBe(true);
+    expect(probe.cleanupCalls).toBe(0);
   });
 
   it("AFTER the activity started, activity ignores cancellation: workflow COMPLETES", async () => {

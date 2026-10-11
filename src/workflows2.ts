@@ -49,6 +49,18 @@ export async function sleepBeforeActivityCall(
 }
 
 
+export async function callTwice(
+  mode: Mode,
+  activityName: ActivityName,
+  activityMs: number,
+): Promise<string> {
+  const result = await proxyFor(mode, activityName)(activityMs);
+  const result2 = await cleanup()
+  return `completed: ${result} ${result2}`;
+}
+
+
+
 export async function cancelWorkflowWithCleanup(
   mode: Mode,
   activityName: ActivityName,
