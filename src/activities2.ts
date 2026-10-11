@@ -14,20 +14,18 @@ export async function slow(ms: number): Promise<string> {
   return "done";
 }
 
-/** Heartbeats every 200 ms and stops as soon as it is told to cancel. */
-export async function slowHeartbeating(ms: number): Promise<string> {
+export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<string> {
   probe.started.resolve();
-  const end = Date.now() + 2000;
+  const end = Date.now() + ms - 2000;
   try {
     while (Date.now() < end) {
       heartbeat();
+      await new Promise((r) => setTimeout(r, 200));
     }
-
-    const res = await fetch("https://www.google.com/");
-
-    console.log(res.statusText + " " + cancellationSignal().aborted);
-
-    return res.statusText
+    heartbeat();
+    const sawCancellation = cancellationSignal().aborted;
+    const someFetch = await fetch("https://www.google.com/");
+    return someFetch.statusText + " " + sawCancellation;
   } finally {
     probe.finished.resolve({
       sawCancellation: cancellationSignal().aborted,

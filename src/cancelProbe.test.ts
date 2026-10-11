@@ -62,9 +62,9 @@ describe("activity cancellation types", () => {
   it("WAIT_CANCELLATION_COMPLETED for non-heartbeating activity: waits for the activity and returns its result", async () => {
     const r = await run("WAIT_CANCELLATION_COMPLETED", "slow");
 
-    expect(r.result).toBe("resolved: done"); // no exception at all
-    expect(r.workflowWaitedMs).toBeGreaterThan(ACTIVITY_MS); // waited for the activity
-    expect(r.activity.sawCancellation).toBe(false); // never heard about the cancel
+    expect(r.result).toBe("resolved: done");
+    expect(r.workflowWaitedMs).toBeGreaterThan(ACTIVITY_MS);
+    expect(r.activity.sawCancellation).toBe(false);
   });
 
   it("TRY_CANCEL for non-heartbeating activity: throws right away, the activity keeps running", async () => {
@@ -85,13 +85,21 @@ describe("activity cancellation types", () => {
     expect(r.activity.sawCancellation).toBe(false);
   });
 
-  it("WAIT_CANCELLATION_COMPLETED for heartbeating activity: the activity learns about it and the workflow gets a cancellation", async () => {
+  it("WAIT_CANCELLATION_COMPLETED for heartbeating honouring activity: the activity learns about it and the workflow gets a cancellation", async () => {
     const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingWithSleep");
 
     expect(r.result).toBe("rejected: cancelled");
     expect(r.workflowWaitedMs).toBeLessThan(ACTIVITY_MS - 2_000); // stopped early
     expect(r.activity.sawCancellation).toBe(true);
   });
+
+  it("WAIT_CANCELLATION_COMPLETED for heartbeating ignoring activity: the activity sees cancellation signal but ignores it", async () => {
+    const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingWithIgnoringCancelSignal");
+
+    expect(r.result).toBe("resolved: OK true");
+    expect(r.activity.sawCancellation).toBe(true);
+  });
+
 
   it("TRY_CANCEL for heartbeating activity: throws right away, the activity terminates earlier", async () => {
     const r = await run("TRY_CANCEL", "heartbeatingWithSleep");
