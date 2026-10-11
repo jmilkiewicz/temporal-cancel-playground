@@ -6,7 +6,7 @@ import {
   proxyActivities,
   setHandler,
 } from "@temporalio/workflow";
-import type * as activities2 from "./activities2";
+import type * as activities2 from "./activities";
 import { activityOptions } from "./activityOptions";
 
 export const cancelSignal = defineSignal("cancel");

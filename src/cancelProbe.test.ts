@@ -1,6 +1,6 @@
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
-import * as activities2 from "./activities2";
+import * as activities2 from "./activities";
 import { probe } from "./probe";
 import { ActivityName, cancelProbe, cancelSignal, Mode } from "./workflows";
 
