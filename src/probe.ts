@@ -17,8 +17,10 @@ function deferred<T>() {
 export const probe = {
   started: deferred<void>(),
   finished: deferred<ActivityOutcome>(),
+  cleanupCalls: 0,
   reset() {
     this.started = deferred<void>();
     this.finished = deferred<ActivityOutcome>();
+    this.cleanupCalls = 0;
   },
 };

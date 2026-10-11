@@ -35,6 +35,11 @@ export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<
 }
 
 
+export async function cleanup(): Promise<string> {
+  probe.cleanupCalls++;
+  return "cleaned";
+}
+
 export async function heartbeatingWithSleep(ms: number): Promise<string> {
   probe.started.resolve();
   const end = Date.now() + ms;
