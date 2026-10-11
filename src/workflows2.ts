@@ -3,6 +3,7 @@ import {
   CancellationScope,
   isCancellation,
   proxyActivities,
+  sleep,
 } from "@temporalio/workflow";
 import type * as activities2 from "./activities";
 import { activityOptions } from "./activityOptions";
@@ -26,17 +27,28 @@ function proxyFor(mode: Mode, activityName: ActivityName) {
   })[activityName];
 }
 
-/** Does not catch anything: a workflow cancel request surfaces as CancelledFailure. */
 export async function cancelWorkflow(
   mode: Mode,
   activityName: ActivityName,
   activityMs: number,
 ): Promise<string> {
   const result = await proxyFor(mode, activityName)(activityMs);
+  const cancelled = CancellationScope.current().consideredCancelled;
+  return `completed: ${result} cancelled=${cancelled}`;
+}
+
+export async function sleepBeforeActivityCall(
+  mode: Mode,
+  activityName: ActivityName,
+  activityMs: number,
+  sleepMs: number,
+): Promise<string> {
+  await sleep(sleepMs);
+  const result = await proxyFor(mode, activityName)(activityMs);
   return `completed: ${result}`;
 }
 
-/** Catches the cancellation, runs a cleanup activity, then rethrows. */
+
 export async function cancelWorkflowWithCleanup(
   mode: Mode,
   activityName: ActivityName,
@@ -50,6 +62,7 @@ export async function cancelWorkflowWithCleanup(
     if (!isCancellation(err)) throw err;
     if (protectCleanup) {
       await CancellationScope.nonCancellable(() => cleanup());
+      return `completed: cleanup`;
     } else {
       await cleanup();
     }
