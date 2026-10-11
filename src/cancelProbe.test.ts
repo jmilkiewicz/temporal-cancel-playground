@@ -89,7 +89,8 @@ describe("activity cancellation types", () => {
     const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingWithSleep");
 
     expect(r.result).toBe("rejected: cancelled");
-    expect(r.workflowWaitedMs).toBeLessThan(ACTIVITY_MS - 2_000); // stopped early
+    expect(r.workflowWaitedMs).toBeLessThan(ACTIVITY_MS - 2_000);
+    expect(r.activityRanAfterCancelMs).toBeLessThan(ACTIVITY_MS - 2_000);
     expect(r.activity.sawCancellation).toBe(true);
   });
 
