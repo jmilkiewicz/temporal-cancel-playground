@@ -4,6 +4,7 @@ import {
   ActivityName,
   callTwice,
   cancelWholeWorkflow,
+  cancelWorkflowCheckAfterLastActivity,
   cancelWorkflowCleanupThenRethrow,
   cancelWorkflowCleanupUnprotected,
   Mode,
@@ -99,6 +100,18 @@ describe("cancelling the workflow itself", () => {
     expect(r.outcome).toContain("OK true cancelled=true");
     expect(r.status).toBe("COMPLETED");
     expect(r.activity.sawCancellation).toBe(true);
+  });
+
+  it("last activity ignores cancellation, workflow checks consideredCancelled and throws CancelledFailure: workflow ends CANCELLED", async () => {
+    const r = await startAndCancel(cancelWorkflowCheckAfterLastActivity, [
+      "WAIT_CANCELLATION_COMPLETED",
+      "heartBeatingWithIgnoringCancelSignal",
+      ACTIVITY_MS,
+    ]);
+
+    expect(r.activity.sawCancellation).toBe(true);
+    expect(r.outcome).toBe("cancelled");
+    expect(r.status).toBe("CANCELLED");
   });
 
   describe("workflow catches the cancellation and runs a cleanup activity", () => {

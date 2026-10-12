@@ -1,5 +1,6 @@
 import {
   ActivityCancellationType,
+  CancelledFailure,
   CancellationScope,
   isCancellation,
   proxyActivities,
@@ -59,6 +60,18 @@ export async function cancelWorkflowCleanupThenRethrow(
     }
     throw err;
   }
+}
+
+export async function cancelWorkflowCheckAfterLastActivity(
+  mode: Mode,
+  activityName: ActivityName,
+  activityMs: number,
+): Promise<string> {
+  const result = await proxyFor(mode, activityName)(activityMs);
+  if (CancellationScope.current().consideredCancelled) {
+    throw new CancelledFailure(`cancelled after activity returned: ${result}`);
+  }
+  return `completed: ${result}`;
 }
 
 export async function cancelWorkflowCleanupUnprotected(
