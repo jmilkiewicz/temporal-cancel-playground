@@ -5,7 +5,7 @@ It shows what happens to a workflow and its activities when the workflow itself 
 depending on the activity cancellation type, whether the activity heartbeats, and whether the
 workflow catches the cancellation.
 
-- `src/workflows2.ts`: workflows used by `cancelWorkflow.test.ts`
+- `src/workflows/wholeWorkflow.ts`: workflows used by `cancelWholeWorkflow.test.ts`
 - `src/activities.ts`: activities (`slow`, `heartBeatingHonouringCancel`,
   `heartBeatingWithIgnoringCancelSignal`, `cleanup`)
 - `src/activityOptions.ts`: per-activity options shared by workflows and tests
@@ -14,8 +14,8 @@ workflow catches the cancellation.
   workflow, cancels it while the activity runs and collects outcome, status and timings
 - `src/workServer.ts`, `src/globalSetup.ts`, `src/globalTeardown.ts`: local HTTP server the
   activities call, started once per Jest run
-- `src/cancelWorkflow.test.ts`: cancels the workflow with `handle.cancel()`
-- `src/workflows.ts` and `src/cancelProbe.test.ts`: earlier variant that cancels an inner scope via a signal
+- `src/cancelWholeWorkflow.test.ts`: cancels the workflow with `handle.cancel()`
+- `src/workflows/innerScope.ts` and `src/cancelInnerScope.test.ts`: earlier variant that cancels an inner scope via a signal
 
 Requires Node.js >= 20.3.
 

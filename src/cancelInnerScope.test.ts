@@ -1,11 +1,11 @@
 import { ACTIVITY_MS, setupCancelHarness } from "./cancelHarness";
-import { ActivityName, cancelProbe, cancelSignal, Mode } from "./workflows";
+import { ActivityName, cancelInnerScope, cancelSignal, Mode } from "./workflows/innerScope";
 
 describe("activity cancellation types", () => {
-  const harness = setupCancelHarness("cancel-probe", require.resolve("./workflows"));
+  const harness = setupCancelHarness("cancel-inner-scope", require.resolve("./workflows/innerScope"));
 
   function run(mode: Mode, activityName: ActivityName) {
-    return harness.startAndCancel(cancelProbe, [mode, activityName, ACTIVITY_MS], (handle) =>
+    return harness.startAndCancel(cancelInnerScope, [mode, activityName, ACTIVITY_MS], (handle) =>
       handle.signal(cancelSignal),
     );
   }

@@ -6,8 +6,8 @@ import {
   proxyActivities,
   setHandler,
 } from "@temporalio/workflow";
-import type * as activities from "./activities";
-import { activityOptions } from "./activityOptions";
+import type * as activities from "../activities";
+import { activityOptions } from "../activityOptions";
 
 export const cancelSignal = defineSignal("cancel");
 
@@ -15,7 +15,7 @@ export type ActivityName = keyof typeof activityOptions;
 
 export type Mode = "WAIT_CANCELLATION_COMPLETED" | "TRY_CANCEL" | "ABANDON";
 
-export async function cancelProbe(
+export async function cancelInnerScope(
   mode: Mode,
   activityName: ActivityName,
   activityMs: number,

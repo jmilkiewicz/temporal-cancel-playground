@@ -4,8 +4,8 @@ import {
   isCancellation,
   proxyActivities,
 } from "@temporalio/workflow";
-import type * as activities from "./activities";
-import { activityOptions } from "./activityOptions";
+import type * as activities from "../activities";
+import { activityOptions } from "../activityOptions";
 
 export type ActivityName = keyof typeof activityOptions;
 
@@ -25,7 +25,7 @@ function proxyFor(mode: Mode, activityName: ActivityName) {
   })[activityName];
 }
 
-export async function cancelWorkflow(
+export async function cancelWholeWorkflow(
   mode: Mode,
   activityName: ActivityName,
   activityMs: number,

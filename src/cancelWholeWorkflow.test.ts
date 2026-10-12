@@ -3,13 +3,13 @@ import { probe } from "./probe";
 import {
   ActivityName,
   callTwice,
-  cancelWorkflow,
+  cancelWholeWorkflow,
   cancelWorkflowWithCleanup,
   Mode,
-} from "./workflows2";
+} from "./workflows/wholeWorkflow";
 
 describe("cancelling the workflow itself", () => {
-  const harness = setupCancelHarness("cancel-workflow", require.resolve("./workflows2"));
+  const harness = setupCancelHarness("cancel-whole-workflow", require.resolve("./workflows/wholeWorkflow"));
 
   function startAndCancel<A extends unknown[]>(
     workflow: (...args: A) => Promise<string>,
@@ -19,7 +19,7 @@ describe("cancelling the workflow itself", () => {
   }
 
   function run(mode: Mode, activityName: ActivityName) {
-    return startAndCancel(cancelWorkflow, [mode, activityName, ACTIVITY_MS]);
+    return startAndCancel(cancelWholeWorkflow, [mode, activityName, ACTIVITY_MS]);
   }
 
   function runWithCleanup(mode: Mode, activityName: ActivityName, protectCleanup: boolean) {
