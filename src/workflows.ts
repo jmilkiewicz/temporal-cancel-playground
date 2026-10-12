@@ -6,7 +6,7 @@ import {
   proxyActivities,
   setHandler,
 } from "@temporalio/workflow";
-import type * as activities2 from "./activities";
+import type * as activities from "./activities";
 import { activityOptions } from "./activityOptions";
 
 export const cancelSignal = defineSignal("cancel");
@@ -20,7 +20,7 @@ export async function cancelProbe(
   activityName: ActivityName,
   activityMs: number,
 ): Promise<string> {
-  const activityProxies = proxyActivities<Pick<typeof activities2, ActivityName>>({
+  const activityProxies = proxyActivities<Pick<typeof activities, ActivityName>>({
     startToCloseTimeout: "1 minute",
     heartbeatTimeout: activityOptions[activityName].heartbeatTimeout,
     retry: { maximumAttempts: 1 },

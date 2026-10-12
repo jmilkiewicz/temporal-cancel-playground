@@ -1,6 +1,6 @@
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
-import * as activities2 from "./activities";
+import * as activities from "./activities";
 import { probe } from "./probe";
 import { ActivityName, cancelProbe, cancelSignal, Mode } from "./workflows";
 
@@ -23,7 +23,7 @@ describe("activity cancellation types", () => {
       connection: testEnv.nativeConnection,
       taskQueue,
       workflowsPath: require.resolve("./workflows"),
-      activities: activities2,
+      activities,
     });
     workerRun = worker.run();
   });
