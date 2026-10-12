@@ -6,10 +6,14 @@ depending on the activity cancellation type, whether the activity heartbeats, an
 workflow catches the cancellation.
 
 - `src/workflows2.ts`: workflows used by `cancelWorkflow.test.ts`
-- `src/activities.ts`: activities (`slow`, `heartbeatingHonouringCancel`,
-  `heartbeatingWithIgnoringCancelSignal`, `cleanup`)
+- `src/activities.ts`: activities (`slow`, `heartBeatingHonouringCancel`,
+  `heartBeatingWithIgnoringCancelSignal`, `cleanup`)
 - `src/activityOptions.ts`: per-activity options shared by workflows and tests
 - `src/probe.ts`: in-process probe the activities use to report back to the tests
+- `src/cancelHarness.ts`: shared test setup (dev server, worker) and `startAndCancel`, which starts a
+  workflow, cancels it while the activity runs and collects outcome, status and timings
+- `src/workServer.ts`, `src/globalSetup.ts`, `src/globalTeardown.ts`: local HTTP server the
+  activities call, started once per Jest run
 - `src/cancelWorkflow.test.ts`: cancels the workflow with `handle.cancel()`
 - `src/workflows.ts` and `src/cancelProbe.test.ts`: earlier variant that cancels an inner scope via a signal
 

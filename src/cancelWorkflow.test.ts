@@ -1,7 +1,4 @@
-import { CancelledFailure, WorkflowFailedError } from "@temporalio/client";
-import { TestWorkflowEnvironment } from "@temporalio/testing";
-import { Worker } from "@temporalio/worker";
-import * as activities from "./activities";
+import { ACTIVITY_MS, setupCancelHarness } from "./cancelHarness";
 import { probe } from "./probe";
 import {
   ActivityName,
@@ -11,69 +8,14 @@ import {
   Mode,
 } from "./workflows2";
 
-jest.setTimeout(60_000);
-
-const ACTIVITY_MS = 5_000;
-
 describe("cancelling the workflow itself", () => {
-  const taskQueue = "cancel-workflow";
-  let testEnv: TestWorkflowEnvironment;
-  let worker: Worker;
-  let workerRun: Promise<void>;
+  const harness = setupCancelHarness("cancel-workflow", require.resolve("./workflows2"));
 
-  beforeAll(async () => {
-    testEnv = await TestWorkflowEnvironment.createLocal();
-    worker = await Worker.create({
-      connection: testEnv.nativeConnection,
-      taskQueue,
-      workflowsPath: require.resolve("./workflows2"),
-      activities,
-    });
-    workerRun = worker.run();
-  });
-
-  afterAll(async () => {
-    worker?.shutdown();
-    await workerRun;
-    await testEnv?.teardown();
-  });
-
-  async function cancelWhileActivityRuns(
-    handle: Awaited<ReturnType<typeof testEnv.client.workflow.start>>,
-  ) {
-    await probe.started.promise;
-    const cancelledAt = Date.now();
-    await handle.cancel();
-
-    let outcome: string;
-    try {
-      outcome = await handle.result();
-    } catch (err) {
-      outcome =
-        err instanceof WorkflowFailedError && err.cause instanceof CancelledFailure
-          ? "cancelled"
-          : `failed: ${String(err)}`;
-    }
-    const workflowWaitedMs = Date.now() - cancelledAt;
-    const status = (await handle.describe()).status.name;
-
-    const activity = await probe.finished.promise;
-    const activityRanAfterCancelMs = activity.finishedAt - cancelledAt;
-
-    return { outcome, status, workflowWaitedMs, activity, activityRanAfterCancelMs };
-  }
-
-  async function startAndCancel<A extends unknown[]>(
+  function startAndCancel<A extends unknown[]>(
     workflow: (...args: A) => Promise<string>,
     args: A,
   ) {
-    probe.reset();
-    const handle = await testEnv.client.workflow.start(workflow, {
-      args,
-      taskQueue,
-      workflowId: `${workflow.name}-${Date.now()}`,
-    });
-    return cancelWhileActivityRuns(handle);
+    return harness.startAndCancel(workflow, args, (handle) => handle.cancel());
   }
 
   function run(mode: Mode, activityName: ActivityName) {

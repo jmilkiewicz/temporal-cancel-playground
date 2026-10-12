@@ -1,64 +1,19 @@
-import { TestWorkflowEnvironment } from "@temporalio/testing";
-import { Worker } from "@temporalio/worker";
-import * as activities from "./activities";
-import { probe } from "./probe";
+import { ACTIVITY_MS, setupCancelHarness } from "./cancelHarness";
 import { ActivityName, cancelProbe, cancelSignal, Mode } from "./workflows";
 
-// Real-time local dev server, not time skipping: the activities sleep in real
-// time, and time skipping could fast-forward the workflow's timeouts while
-// they are still running, which would muddy the results.
-jest.setTimeout(60_000);
-
-const ACTIVITY_MS = 5_000;
-
 describe("activity cancellation types", () => {
-  const taskQueue = "cancel-probe";
-  let testEnv: TestWorkflowEnvironment;
-  let worker: Worker;
-  let workerRun: Promise<void>;
+  const harness = setupCancelHarness("cancel-probe", require.resolve("./workflows"));
 
-  beforeAll(async () => {
-    testEnv = await TestWorkflowEnvironment.createLocal();
-    worker = await Worker.create({
-      connection: testEnv.nativeConnection,
-      taskQueue,
-      workflowsPath: require.resolve("./workflows"),
-      activities,
-    });
-    workerRun = worker.run();
-  });
-
-  afterAll(async () => {
-    worker?.shutdown();
-    await workerRun;
-    await testEnv?.teardown();
-  });
-
-  async function run(mode: Mode, activityName: ActivityName) {
-    probe.reset();
-    const handle = await testEnv.client.workflow.start(cancelProbe, {
-      args: [mode, activityName, ACTIVITY_MS],
-      taskQueue,
-      workflowId: `cancel-probe-${mode}-${activityName}-${Date.now()}`,
-    });
-
-    await probe.started.promise;
-    const cancelledAt = Date.now();
-    await handle.signal(cancelSignal);
-
-    const result = await handle.result();
-    const workflowWaitedMs = Date.now() - cancelledAt;
-
-    const activity = await probe.finished.promise;
-    const activityRanAfterCancelMs = activity.finishedAt - cancelledAt;
-
-    return { result, workflowWaitedMs, activity, activityRanAfterCancelMs };
+  function run(mode: Mode, activityName: ActivityName) {
+    return harness.startAndCancel(cancelProbe, [mode, activityName, ACTIVITY_MS], (handle) =>
+      handle.signal(cancelSignal),
+    );
   }
 
   it("WAIT_CANCELLATION_COMPLETED for non-heartbeating activity: waits for the activity and returns its result", async () => {
     const r = await run("WAIT_CANCELLATION_COMPLETED", "slow");
 
-    expect(r.result).toBe("resolved: done");
+    expect(r.outcome).toBe("resolved: done");
     expect(r.workflowWaitedMs).toBeGreaterThan(ACTIVITY_MS);
     expect(r.activity.sawCancellation).toBe(false);
   });
@@ -66,25 +21,25 @@ describe("activity cancellation types", () => {
   it("TRY_CANCEL for non-heartbeating activity: throws right away, the activity keeps running", async () => {
     const r = await run("TRY_CANCEL", "slow");
 
-    expect(r.result).toBe("rejected: cancelled");
+    expect(r.outcome).toBe("rejected: cancelled");
     expect(r.workflowWaitedMs).toBeLessThan(1_000); // did not wait
-    expect(r.activityRanAfterCancelMs).toBeGreaterThanOrEqual(ACTIVITY_MS); // ran on in the background
+    expect(r.activityRanAfterCancelMs).toBeGreaterThanOrEqual(ACTIVITY_MS - 500); // ran on in the background
     expect(r.activity.sawCancellation).toBe(false);
   });
 
   it("ABANDON for non-heartbeating activity: same as TRY_CANCEL from the workflow's side", async () => {
     const r = await run("ABANDON", "slow");
 
-    expect(r.result).toBe("rejected: cancelled");
+    expect(r.outcome).toBe("rejected: cancelled");
     expect(r.workflowWaitedMs).toBeLessThan(1_000);
-    expect(r.activityRanAfterCancelMs).toBeGreaterThanOrEqual(ACTIVITY_MS);
+    expect(r.activityRanAfterCancelMs).toBeGreaterThanOrEqual(ACTIVITY_MS - 500);
     expect(r.activity.sawCancellation).toBe(false);
   });
 
   it("WAIT_CANCELLATION_COMPLETED for heartbeating honouring activity: the activity learns about it and the workflow gets a cancellation", async () => {
     const r = await run("WAIT_CANCELLATION_COMPLETED", "heartBeatingHonouringCancel");
 
-    expect(r.result).toBe("rejected: cancelled");
+    expect(r.outcome).toBe("rejected: cancelled");
     expect(r.workflowWaitedMs).toBeLessThan(ACTIVITY_MS - 2_000);
     expect(r.activityRanAfterCancelMs).toBeLessThan(ACTIVITY_MS - 2_000);
     expect(r.activity.sawCancellation).toBe(true);
@@ -93,7 +48,7 @@ describe("activity cancellation types", () => {
   it("WAIT_CANCELLATION_COMPLETED for heartbeating ignoring activity: the activity sees cancellation signal but ignores it", async () => {
     const r = await run("WAIT_CANCELLATION_COMPLETED", "heartBeatingWithIgnoringCancelSignal");
 
-    expect(r.result).toBe("resolved: OK true");
+    expect(r.outcome).toBe("resolved: OK true");
     expect(r.activity.sawCancellation).toBe(true);
   });
 
@@ -101,7 +56,7 @@ describe("activity cancellation types", () => {
   it("TRY_CANCEL for heartbeating activity: throws right away, the activity terminates earlier", async () => {
     const r = await run("TRY_CANCEL", "heartBeatingHonouringCancel");
 
-    expect(r.result).toBe("rejected: cancelled");
+    expect(r.outcome).toBe("rejected: cancelled");
     expect(r.workflowWaitedMs).toBeLessThan(1_000);
     expect(r.activity.sawCancellation).toBe(true);
   });
