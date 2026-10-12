@@ -31,7 +31,8 @@ npm test
 
 The tests use `TestWorkflowEnvironment.createLocal()` from `@temporalio/testing`, which starts a
 local Temporal dev server. They need no Docker. On the first run the SDK downloads the dev server
-binary, so that first run needs network access. The heartbeating activities call a slow endpoint on a
+binary, so that first run needs network access. (`docker-compose.yml` is only for running a
+Temporal server and UI by hand; the tests do not use it.) The heartbeating activities call a slow endpoint on a
 local HTTP server (`src/workServer.ts`) started once per Jest run by `src/globalSetup.ts` on port
 18080 (override with `WORK_SERVER_PORT`), so nothing else needs the network.
 
