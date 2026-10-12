@@ -1,12 +1,17 @@
-# temporal-playground
+# temporal-cancellation-playground
 
-Minimal "hello world" using the Temporal TypeScript SDK (`@temporalio/*` **1.24.0**, pinned).
+Experiments with cancellation in the Temporal TypeScript SDK (`@temporalio/*` **1.24.0**, pinned).
+It shows what happens to a workflow and its activities when the workflow itself is cancelled,
+depending on the activity cancellation type, whether the activity heartbeats, and whether the
+workflow catches the cancellation.
 
-- `src/activities.ts`: the `greet(name)` activity
-- `src/greetWorkflow.ts`: the `greetWorkflow(name)` workflow, which calls `greet`
-- `src/worker.ts`: a worker that registers the workflow and the activity
-- `src/client.ts`: a CLI client that starts the workflow
-- `src/greetWorkflow.test.ts`: end-to-end tests on `TestWorkflowEnvironment.createTimeSkipping()`
+- `src/workflows2.ts`: workflows used by `cancelWorkflow.test.ts`
+- `src/activities.ts`: activities (`slow`, `heartbeatingWithSleep`,
+  `heartbeatingWithIgnoringCancelSignal`, `cleanup`)
+- `src/activityOptions.ts`: per-activity options shared by workflows and tests
+- `src/probe.ts`: in-process probe the activities use to report back to the tests
+- `src/cancelWorkflow.test.ts`: cancels the workflow with `handle.cancel()`
+- `src/workflows.ts` and `src/cancelProbe.test.ts`: earlier variant that cancels an inner scope via a signal
 
 Requires Node.js >= 20.3.
 
@@ -14,21 +19,16 @@ Requires Node.js >= 20.3.
 npm install
 ```
 
-## Tests (no Docker)
+## Tests
 
 ```sh
 npm test
 ```
 
-The tests use `TestWorkflowEnvironment.createTimeSkipping()` from `@temporalio/testing`. They need
-neither Docker nor an external Temporal server. On the first run the SDK downloads the Time
-Skipping Test Server binary and caches it in `$TMPDIR`, so that first run needs network access.
-
-On Apple Silicon the SDK downloads a native arm64 binary, so Rosetta is not needed. The comment
-in the SDK typings that says otherwise is outdated.
-
-Shared test helpers belong in `src/test-utils/`. Like `*.test.ts` files, that directory is
-excluded from the build (`tsconfig.build.json`).
+The tests use `TestWorkflowEnvironment.createLocal()` from `@temporalio/testing`, which starts a
+local Temporal dev server. They need no Docker. On the first run the SDK downloads the dev server
+binary, so that first run needs network access. `heartbeatingWithIgnoringCancelSignal` also calls
+`https://www.google.com/`.
 
 ### Why Jest rather than Vitest
 
@@ -48,19 +48,3 @@ Code is formatted with Prettier (pinned in `devDependencies`, config in `.pretti
 npm run format        # rewrite files in place
 npm run format:check  # fail if anything is not formatted
 ```
-
-## Running manually against a server (docker-compose)
-
-This is a separate path. `npm test` does not use it. The worker and client run straight from
-TypeScript via `tsx`; `npm run build` (tsc to `lib/`) is only needed for a compiled build.
-
-```sh
-npm run server:up              # docker compose up -d: Temporal server + Web UI
-npm run start:worker           # terminal 1
-npm run start:client -- Alice  # terminal 2, prints "Hello, Alice!"
-npm run server:down
-```
-
-Web UI: <http://localhost:8080>. You will find the started `greet-<uuid>` workflow in the `default`
-namespace. The gRPC server listens on `localhost:7233`. Set `TEMPORAL_ADDRESS` to use a different
-address.
