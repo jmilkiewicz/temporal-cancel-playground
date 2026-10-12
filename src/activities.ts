@@ -1,11 +1,11 @@
-import { cancellationSignal, heartbeat, sleep } from "@temporalio/activity";
+import { cancellationSignal, heartbeat } from "@temporalio/activity";
 import { probe } from "./probe";
 
 /** Never heartbeats, so it can never learn about a cancellation request. */
 export async function slow(ms: number): Promise<string> {
   probe.started.resolve();
   try {
-    await new Promise((r) => setTimeout(r, ms)); // plain timer: ignores cancellation
+    await new Promise((r) => setTimeout(r, ms));
     return "done";
   } finally {
     probe.finished.resolve({
@@ -15,19 +15,37 @@ export async function slow(ms: number): Promise<string> {
   }
 }
 
+/** Heartbeats in the background while a slow HTTP call runs, and never passes the abort signal to it. */
 export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<string> {
   probe.started.resolve();
-  const end = Date.now() + ms - 2000;
+  const timer = setInterval(() => heartbeat(), 200);
   try {
-    while (Date.now() < end) {
-      heartbeat();
-      await new Promise((r) => setTimeout(r, 200));
-    }
     heartbeat();
-    const sawCancellation = cancellationSignal().aborted;
-    const someFetch = await fetch("https://www.google.com/");
-    return someFetch.statusText + " " + sawCancellation;
+    const aborted = cancellationSignal().aborted;
+    const response = await fetch(`${probe.workUrl}?ms=${ms}`);
+    await response.text();
+    return response.statusText + " " + aborted;
   } finally {
+    clearInterval(timer);
+    probe.finished.resolve({
+      sawCancellation: cancellationSignal().aborted,
+      finishedAt: Date.now(),
+    });
+  }
+}
+
+/** Heartbeats in the background while a slow HTTP call runs, and aborts that call on cancellation. */
+export async function heartbeatingHonouringCancel(ms: number): Promise<string> {
+  probe.started.resolve();
+  const timer = setInterval(() => heartbeat(), 200);
+  try {
+    const response = await fetch(`${probe.workUrl}?ms=${ms}`, {
+      signal: cancellationSignal(),
+    });
+    await response.text();
+    return "done";
+  } finally {
+    clearInterval(timer);
     probe.finished.resolve({
       sawCancellation: cancellationSignal().aborted,
       finishedAt: Date.now(),
@@ -39,21 +57,4 @@ export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<
 export async function cleanup(): Promise<string> {
   probe.cleanupCalls++;
   return "cleaned";
-}
-
-export async function heartbeatingWithSleep(ms: number): Promise<string> {
-  probe.started.resolve();
-  const end = Date.now() + ms;
-  try {
-    while (Date.now() < end) {
-      heartbeat();
-      await sleep(200); // activity sleep: rejects with CancelledFailure on cancellation
-    }
-    return "done";
-  } finally {
-    probe.finished.resolve({
-      sawCancellation: cancellationSignal().aborted,
-      finishedAt: Date.now(),
-    });
-  }
 }

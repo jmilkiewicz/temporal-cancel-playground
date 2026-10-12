@@ -6,7 +6,7 @@ depending on the activity cancellation type, whether the activity heartbeats, an
 workflow catches the cancellation.
 
 - `src/workflows2.ts`: workflows used by `cancelWorkflow.test.ts`
-- `src/activities.ts`: activities (`slow`, `heartbeatingWithSleep`,
+- `src/activities.ts`: activities (`slow`, `heartbeatingHonouringCancel`,
   `heartbeatingWithIgnoringCancelSignal`, `cleanup`)
 - `src/activityOptions.ts`: per-activity options shared by workflows and tests
 - `src/probe.ts`: in-process probe the activities use to report back to the tests
@@ -27,8 +27,8 @@ npm test
 
 The tests use `TestWorkflowEnvironment.createLocal()` from `@temporalio/testing`, which starts a
 local Temporal dev server. They need no Docker. On the first run the SDK downloads the dev server
-binary, so that first run needs network access. `heartbeatingWithIgnoringCancelSignal` also calls
-`https://www.google.com/`.
+binary, so that first run needs network access. The heartbeating activities call a slow endpoint on a
+local HTTP server (`src/workServer.ts`) started by the tests, so nothing else needs the network.
 
 ### Why Jest rather than Vitest
 

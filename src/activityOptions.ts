@@ -2,5 +2,5 @@
 export const activityOptions = {
   slow: { heartbeatTimeout: undefined },
   heartbeatingWithIgnoringCancelSignal: { heartbeatTimeout: "2 seconds" },
-  heartbeatingWithSleep: { heartbeatTimeout: "2 seconds" },
+  heartbeatingHonouringCancel: { heartbeatTimeout: "2 seconds" },
 };

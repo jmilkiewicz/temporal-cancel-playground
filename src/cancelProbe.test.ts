@@ -1,7 +1,9 @@
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
+import type { Server } from "node:http";
 import * as activities from "./activities";
 import { probe } from "./probe";
+import { startWorkServer, stopWorkServer } from "./workServer";
 import { ActivityName, cancelProbe, cancelSignal, Mode } from "./workflows";
 
 // Real-time local dev server, not time skipping: the activities sleep in real
@@ -16,8 +18,10 @@ describe("activity cancellation types", () => {
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
   let workerRun: Promise<void>;
+  let workServer: Server;
 
   beforeAll(async () => {
+    workServer = await startWorkServer();
     testEnv = await TestWorkflowEnvironment.createLocal();
     worker = await Worker.create({
       connection: testEnv.nativeConnection,
@@ -32,6 +36,7 @@ describe("activity cancellation types", () => {
     worker?.shutdown();
     await workerRun;
     await testEnv?.teardown();
+    await stopWorkServer(workServer);
   });
 
   async function run(mode: Mode, activityName: ActivityName) {
@@ -86,7 +91,7 @@ describe("activity cancellation types", () => {
   });
 
   it("WAIT_CANCELLATION_COMPLETED for heartbeating honouring activity: the activity learns about it and the workflow gets a cancellation", async () => {
-    const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingWithSleep");
+    const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingHonouringCancel");
 
     expect(r.result).toBe("rejected: cancelled");
     expect(r.workflowWaitedMs).toBeLessThan(ACTIVITY_MS - 2_000);
@@ -103,7 +108,7 @@ describe("activity cancellation types", () => {
 
 
   it("TRY_CANCEL for heartbeating activity: throws right away, the activity terminates earlier", async () => {
-    const r = await run("TRY_CANCEL", "heartbeatingWithSleep");
+    const r = await run("TRY_CANCEL", "heartbeatingHonouringCancel");
 
     expect(r.result).toBe("rejected: cancelled");
     expect(r.workflowWaitedMs).toBeLessThan(1_000);

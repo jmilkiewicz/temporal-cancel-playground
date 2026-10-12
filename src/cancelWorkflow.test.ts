@@ -1,8 +1,10 @@
 import { CancelledFailure, WorkflowFailedError } from "@temporalio/client";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
+import type { Server } from "node:http";
 import * as activities from "./activities";
 import { probe } from "./probe";
+import { startWorkServer, stopWorkServer } from "./workServer";
 import {
   ActivityName,
   callTwice,
@@ -20,8 +22,10 @@ describe("cancelling the workflow itself", () => {
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
   let workerRun: Promise<void>;
+  let workServer: Server;
 
   beforeAll(async () => {
+    workServer = await startWorkServer();
     testEnv = await TestWorkflowEnvironment.createLocal();
     worker = await Worker.create({
       connection: testEnv.nativeConnection,
@@ -36,6 +40,7 @@ describe("cancelling the workflow itself", () => {
     worker?.shutdown();
     await workerRun;
     await testEnv?.teardown();
+    await stopWorkServer(workServer);
   });
 
   async function cancelWhileActivityRuns(
@@ -100,7 +105,7 @@ describe("cancelling the workflow itself", () => {
   });
 
   it("WAIT_CANCELLATION_COMPLETED + heartbeating activity: activity stops, workflow is CANCELLED", async () => {
-    const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingWithSleep");
+    const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingHonouringCancel");
 
     expect(r.outcome).toBe("cancelled");
     expect(r.status).toBe("CANCELLED");
@@ -119,7 +124,7 @@ describe("cancelling the workflow itself", () => {
   });
 
   it("TRY_CANCEL + heartbeating activity: workflow is CANCELLED right away, activity learns about it later", async () => {
-    const r = await run("TRY_CANCEL", "heartbeatingWithSleep");
+    const r = await run("TRY_CANCEL", "heartbeatingHonouringCancel");
 
     expect(r.outcome).toBe("cancelled");
     expect(r.status).toBe("CANCELLED");
@@ -160,7 +165,7 @@ describe("cancelling the workflow itself", () => {
 
   describe("workflow catches the cancellation and runs a cleanup activity", () => {
     it("cleanup inside CancellationScope.nonCancellable: cleanup runs, workflow swallows the cancel and COMPLETES", async () => {
-      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartbeatingWithSleep", true);
+      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartbeatingHonouringCancel", true);
 
       expect(probe.cleanupCalls).toBe(1);
       expect(r.outcome).toBe("completed: cleanup");
@@ -168,7 +173,7 @@ describe("cancelling the workflow itself", () => {
     });
 
     it("cleanup in the cancelled scope: cleanup activity never runs, workflow ends CANCELLED", async () => {
-      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartbeatingWithSleep", false);
+      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartbeatingHonouringCancel", false);
 
       expect(probe.cleanupCalls).toBe(0);
       expect(r.outcome).toBe("cancelled");
