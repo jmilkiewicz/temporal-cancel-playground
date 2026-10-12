@@ -59,7 +59,7 @@ describe("cancelling the workflow itself", () => {
     expect(r.activity.sawCancellation).toBe(false);
   });
 
-  it("TRY_CANCEL + heartbeating ignoring activity: workflow is CANCELLED right away, activity activity keeps running", async () => {
+  it("TRY_CANCEL + heartbeating ignoring activity: workflow is CANCELLED right away, activity keeps running", async () => {
     const r = await run("TRY_CANCEL", "heartBeatingWithIgnoringCancelSignal");
 
     expect(r.outcome).toBe("cancelled");
