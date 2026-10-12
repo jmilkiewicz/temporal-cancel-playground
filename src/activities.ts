@@ -30,7 +30,7 @@ export async function heartBeatingWithIgnoringCancelSignal(ms: number): Promise<
       await new Promise((r) => setTimeout(r, 100));
     }
     const aborted = cancellationSignal().aborted;
-    const response = await fetch(WORK_URL);
+    const response = await fetch(`${WORK_URL}?ms=${ms}`);
     await response.text();
     return response.statusText + " " + aborted;
   } finally {
