@@ -15,14 +15,21 @@ export async function slow(ms: number): Promise<string> {
   }
 }
 
-/** Heartbeats in the background while a slow HTTP call runs, and never passes the abort signal to it. */
+/**
+ * Heartbeats in the background and waits (at most `ms`) until the cancellation request is delivered
+ * (heartbeats are how an activity learns about it), then calls the HTTP endpoint anyway, knowing
+ * the signal is aborted and without passing it to `fetch`.
+ */
 export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<string> {
   probe.started.resolve();
   const timer = setInterval(() => heartbeat(), 200);
   try {
-    heartbeat();
+    const deadline = Date.now() + ms;
+    while (!cancellationSignal().aborted && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
     const aborted = cancellationSignal().aborted;
-    const response = await fetch(`${probe.workUrl}?ms=${ms}`);
+    const response = await fetch(probe.workUrl);
     await response.text();
     return response.statusText + " " + aborted;
   } finally {
