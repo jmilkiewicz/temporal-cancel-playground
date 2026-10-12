@@ -5,7 +5,13 @@ It shows what happens to a workflow and its activities when the workflow itself 
 depending on the activity cancellation type, whether the activity heartbeats, and whether the
 workflow catches the cancellation.
 
-- `src/workflows/wholeWorkflow.ts`: workflows used by `cancelWholeWorkflow.test.ts`
+- `src/workflows/wholeWorkflow.ts`: workflows used by `cancelWholeWorkflow.test.ts`:
+  - `cancelWholeWorkflow`: runs one activity and returns its result
+  - `callTwice`: runs an activity, then `cleanup`; shows that the second step is never scheduled after a cancel
+  - `cancelWorkflowCleanupUnprotected`: runs `cleanup` in the cancelled scope (it never runs)
+  - `cancelWorkflowCleanupThenRethrow`: runs `cleanup` in `CancellationScope.nonCancellable`, then rethrows
+  - `cancelWorkflowCheckAfterLastActivity`: checks `consideredCancelled` after the last activity and throws
+    `CancelledFailure`, so the workflow ends CANCELLED instead of COMPLETED
 - `src/activities.ts`: activities (`slow`, `heartBeatingHonouringCancel`,
   `heartBeatingWithIgnoringCancelSignal`, `cleanup`)
 - `src/activityOptions.ts`: per-activity options shared by workflows and tests
