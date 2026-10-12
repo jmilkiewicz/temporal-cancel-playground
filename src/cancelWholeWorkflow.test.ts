@@ -4,7 +4,8 @@ import {
   ActivityName,
   callTwice,
   cancelWholeWorkflow,
-  cancelWorkflowWithCleanup,
+  cancelWorkflowCleanupThenRethrow,
+  cancelWorkflowCleanupUnprotected,
   Mode,
 } from "./workflows/wholeWorkflow";
 
@@ -20,15 +21,6 @@ describe("cancelling the workflow itself", () => {
 
   function run(mode: Mode, activityName: ActivityName) {
     return startAndCancel(cancelWholeWorkflow, [mode, activityName, ACTIVITY_MS]);
-  }
-
-  function runWithCleanup(mode: Mode, activityName: ActivityName, protectCleanup: boolean) {
-    return startAndCancel(cancelWorkflowWithCleanup, [
-      mode,
-      activityName,
-      ACTIVITY_MS,
-      protectCleanup,
-    ]);
   }
 
   it("WAIT_CANCELLATION_COMPLETED + non-heartbeating activity: activity finishes, workflow COMPLETES", async () => {
@@ -110,24 +102,24 @@ describe("cancelling the workflow itself", () => {
   });
 
   describe("workflow catches the cancellation and runs a cleanup activity", () => {
-    it("cleanup inside CancellationScope.nonCancellable: cleanup runs, workflow swallows the cancel and COMPLETES", async () => {
-      const r = await runWithCleanup(
+    it("cleanup inside CancellationScope.nonCancellable, then rethrow: cleanup runs and workflow ends CANCELLED", async () => {
+      const r = await startAndCancel(cancelWorkflowCleanupThenRethrow, [
         "WAIT_CANCELLATION_COMPLETED",
         "heartBeatingHonouringCancel",
-        true,
-      );
+        ACTIVITY_MS,
+      ]);
 
       expect(probe.cleanupCalls).toBe(1);
-      expect(r.outcome).toBe("completed: cleanup");
-      expect(r.status).toBe("COMPLETED");
+      expect(r.outcome).toBe("cancelled");
+      expect(r.status).toBe("CANCELLED");
     });
 
     it("cleanup in the cancelled scope: cleanup activity never runs, workflow ends CANCELLED", async () => {
-      const r = await runWithCleanup(
+      const r = await startAndCancel(cancelWorkflowCleanupUnprotected, [
         "WAIT_CANCELLATION_COMPLETED",
         "heartBeatingHonouringCancel",
-        false,
-      );
+        ACTIVITY_MS,
+      ]);
 
       expect(probe.cleanupCalls).toBe(0);
       expect(r.outcome).toBe("cancelled");

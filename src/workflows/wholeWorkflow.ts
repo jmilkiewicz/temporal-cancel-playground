@@ -45,22 +45,34 @@ export async function callTwice(
   return `completed: ${result} ${result2}`;
 }
 
-export async function cancelWorkflowWithCleanup(
+export async function cancelWorkflowCleanupThenRethrow(
   mode: Mode,
   activityName: ActivityName,
   activityMs: number,
-  protectCleanup: boolean,
 ): Promise<string> {
   try {
     const result = await proxyFor(mode, activityName)(activityMs);
     return `completed: ${result}`;
   } catch (err) {
-    if (!isCancellation(err)) throw err;
-    if (protectCleanup) {
+    if (isCancellation(err)) {
       await CancellationScope.nonCancellable(() => cleanup());
-      return "completed: cleanup";
     }
-    await cleanup();
+    throw err;
+  }
+}
+
+export async function cancelWorkflowCleanupUnprotected(
+  mode: Mode,
+  activityName: ActivityName,
+  activityMs: number,
+): Promise<string> {
+  try {
+    const result = await proxyFor(mode, activityName)(activityMs);
+    return `completed: ${result}`;
+  } catch (err) {
+    if (isCancellation(err)) {
+      await cleanup();
+    }
     throw err;
   }
 }
