@@ -1,5 +1,6 @@
 import { cancellationSignal, heartbeat } from "@temporalio/activity";
 import { probe } from "./probe";
+import { WORK_URL } from "./workServer";
 
 /** Never heartbeats, so it can never learn about a cancellation request. */
 export async function slow(ms: number): Promise<string> {
@@ -29,7 +30,7 @@ export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<
       await new Promise((r) => setTimeout(r, 100));
     }
     const aborted = cancellationSignal().aborted;
-    const response = await fetch(probe.workUrl);
+    const response = await fetch(WORK_URL);
     await response.text();
     return response.statusText + " " + aborted;
   } finally {
@@ -46,7 +47,7 @@ export async function heartbeatingHonouringCancel(ms: number): Promise<string> {
   probe.started.resolve();
   const timer = setInterval(() => heartbeat(), 200);
   try {
-    const response = await fetch(`${probe.workUrl}?ms=${ms}`, {
+    const response = await fetch(`${WORK_URL}?ms=${ms}`, {
       signal: cancellationSignal(),
     });
     await response.text();

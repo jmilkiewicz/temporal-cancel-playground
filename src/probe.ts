@@ -18,12 +18,9 @@ export const probe = {
   started: deferred<void>(),
   finished: deferred<ActivityOutcome>(),
   cleanupCalls: 0,
-  workUrl: "",
-  requestAborted: false,
   reset() {
     this.started = deferred<void>();
     this.finished = deferred<ActivityOutcome>();
     this.cleanupCalls = 0;
-    this.requestAborted = false;
   },
 };

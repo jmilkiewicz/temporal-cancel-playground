@@ -1,10 +1,8 @@
 import { CancelledFailure, WorkflowFailedError } from "@temporalio/client";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
-import type { Server } from "node:http";
 import * as activities from "./activities";
 import { probe } from "./probe";
-import { startWorkServer, stopWorkServer } from "./workServer";
 import {
   ActivityName,
   callTwice,
@@ -22,10 +20,8 @@ describe("cancelling the workflow itself", () => {
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
   let workerRun: Promise<void>;
-  let workServer: Server;
 
   beforeAll(async () => {
-    workServer = await startWorkServer();
     testEnv = await TestWorkflowEnvironment.createLocal();
     worker = await Worker.create({
       connection: testEnv.nativeConnection,
@@ -40,7 +36,6 @@ describe("cancelling the workflow itself", () => {
     worker?.shutdown();
     await workerRun;
     await testEnv?.teardown();
-    await stopWorkServer(workServer);
   });
 
   async function cancelWhileActivityRuns(
