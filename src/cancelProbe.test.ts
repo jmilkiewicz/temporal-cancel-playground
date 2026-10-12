@@ -42,9 +42,6 @@ describe("activity cancellation types", () => {
       workflowId: `cancel-probe-${mode}-${activityName}-${Date.now()}`,
     });
 
-    // Cancel only once the activity is really running on the worker.
-    // (If it were still waiting in the task queue, the server would cancel it
-    // directly and every cancellation type would behave the same.)
     await probe.started.promise;
     const cancelledAt = Date.now();
     await handle.signal(cancelSignal);
@@ -52,7 +49,6 @@ describe("activity cancellation types", () => {
     const result = await handle.result();
     const workflowWaitedMs = Date.now() - cancelledAt;
 
-    // Always wait for the activity to stop, so it doesn't leak into the next test.
     const activity = await probe.finished.promise;
     const activityRanAfterCancelMs = activity.finishedAt - cancelledAt;
 

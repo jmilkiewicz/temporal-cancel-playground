@@ -57,7 +57,6 @@ describe("cancelling the workflow itself", () => {
     const workflowWaitedMs = Date.now() - cancelledAt;
     const status = (await handle.describe()).status.name;
 
-    // Always wait for the activity to stop, so it doesn't leak into the next test.
     const activity = await probe.finished.promise;
     const activityRanAfterCancelMs = activity.finishedAt - cancelledAt;
 
