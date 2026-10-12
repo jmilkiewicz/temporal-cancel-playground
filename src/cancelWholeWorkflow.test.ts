@@ -9,12 +9,12 @@ import {
 } from "./workflows/wholeWorkflow";
 
 describe("cancelling the workflow itself", () => {
-  const harness = setupCancelHarness("cancel-whole-workflow", require.resolve("./workflows/wholeWorkflow"));
+  const harness = setupCancelHarness(
+    "cancel-whole-workflow",
+    require.resolve("./workflows/wholeWorkflow"),
+  );
 
-  function startAndCancel<A extends unknown[]>(
-    workflow: (...args: A) => Promise<string>,
-    args: A,
-  ) {
+  function startAndCancel<A extends unknown[]>(workflow: (...args: A) => Promise<string>, args: A) {
     return harness.startAndCancel(workflow, args, (handle) => handle.cancel());
   }
 
@@ -69,7 +69,6 @@ describe("cancelling the workflow itself", () => {
     expect(r.activity.sawCancellation).toBe(true);
   });
 
-
   it("TRY_CANCEL + heartbeating activity: workflow is CANCELLED right away, activity learns about it later", async () => {
     const r = await run("TRY_CANCEL", "heartBeatingHonouringCancel");
 
@@ -112,7 +111,11 @@ describe("cancelling the workflow itself", () => {
 
   describe("workflow catches the cancellation and runs a cleanup activity", () => {
     it("cleanup inside CancellationScope.nonCancellable: cleanup runs, workflow swallows the cancel and COMPLETES", async () => {
-      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartBeatingHonouringCancel", true);
+      const r = await runWithCleanup(
+        "WAIT_CANCELLATION_COMPLETED",
+        "heartBeatingHonouringCancel",
+        true,
+      );
 
       expect(probe.cleanupCalls).toBe(1);
       expect(r.outcome).toBe("completed: cleanup");
@@ -120,7 +123,11 @@ describe("cancelling the workflow itself", () => {
     });
 
     it("cleanup in the cancelled scope: cleanup activity never runs, workflow ends CANCELLED", async () => {
-      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartBeatingHonouringCancel", false);
+      const r = await runWithCleanup(
+        "WAIT_CANCELLATION_COMPLETED",
+        "heartBeatingHonouringCancel",
+        false,
+      );
 
       expect(probe.cleanupCalls).toBe(0);
       expect(r.outcome).toBe("cancelled");

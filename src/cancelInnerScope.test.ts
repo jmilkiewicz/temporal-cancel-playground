@@ -2,7 +2,10 @@ import { ACTIVITY_MS, setupCancelHarness } from "./cancelHarness";
 import { ActivityName, cancelInnerScope, cancelSignal, Mode } from "./workflows/innerScope";
 
 describe("activity cancellation types", () => {
-  const harness = setupCancelHarness("cancel-inner-scope", require.resolve("./workflows/innerScope"));
+  const harness = setupCancelHarness(
+    "cancel-inner-scope",
+    require.resolve("./workflows/innerScope"),
+  );
 
   function run(mode: Mode, activityName: ActivityName) {
     return harness.startAndCancel(cancelInnerScope, [mode, activityName, ACTIVITY_MS], (handle) =>
@@ -51,7 +54,6 @@ describe("activity cancellation types", () => {
     expect(r.outcome).toBe("resolved: OK true");
     expect(r.activity.sawCancellation).toBe(true);
   });
-
 
   it("TRY_CANCEL for heartbeating activity: throws right away, the activity terminates earlier", async () => {
     const r = await run("TRY_CANCEL", "heartBeatingHonouringCancel");

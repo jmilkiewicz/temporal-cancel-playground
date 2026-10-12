@@ -31,9 +31,7 @@ export async function cancelInnerScope(
   setHandler(cancelSignal, () => scope.cancel());
 
   try {
-    const result = await scope.run(() =>
-      activityProxies[activityName](activityMs),
-    );
+    const result = await scope.run(() => activityProxies[activityName](activityMs));
     return `resolved: ${result}`;
   } catch (err) {
     return isCancellation(err) ? "rejected: cancelled" : `rejected: ${String(err)}`;
