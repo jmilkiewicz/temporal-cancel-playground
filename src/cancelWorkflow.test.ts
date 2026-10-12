@@ -100,7 +100,7 @@ describe("cancelling the workflow itself", () => {
   });
 
   it("WAIT_CANCELLATION_COMPLETED + heartbeating activity: activity stops, workflow is CANCELLED", async () => {
-    const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingHonouringCancel");
+    const r = await run("WAIT_CANCELLATION_COMPLETED", "heartBeatingHonouringCancel");
 
     expect(r.outcome).toBe("cancelled");
     expect(r.status).toBe("CANCELLED");
@@ -119,7 +119,7 @@ describe("cancelling the workflow itself", () => {
   });
 
   it("TRY_CANCEL + heartbeating activity: workflow is CANCELLED right away, activity learns about it later", async () => {
-    const r = await run("TRY_CANCEL", "heartbeatingHonouringCancel");
+    const r = await run("TRY_CANCEL", "heartBeatingHonouringCancel");
 
     expect(r.outcome).toBe("cancelled");
     expect(r.status).toBe("CANCELLED");
@@ -140,7 +140,7 @@ describe("cancelling the workflow itself", () => {
   it("during 1st activity execution: workflow is CANCELLED and the 2nd activity is never started", async () => {
     const r = await startAndCancel(callTwice, [
       "WAIT_CANCELLATION_COMPLETED",
-      "heartbeatingWithIgnoringCancelSignal",
+      "heartBeatingWithIgnoringCancelSignal",
       ACTIVITY_MS,
     ]);
 
@@ -151,7 +151,7 @@ describe("cancelling the workflow itself", () => {
   });
 
   it("AFTER the activity started, activity ignores cancellation: workflow COMPLETES", async () => {
-    const r = await run("WAIT_CANCELLATION_COMPLETED", "heartbeatingWithIgnoringCancelSignal");
+    const r = await run("WAIT_CANCELLATION_COMPLETED", "heartBeatingWithIgnoringCancelSignal");
 
     expect(r.outcome).toContain("OK true cancelled=true");
     expect(r.status).toBe("COMPLETED");
@@ -160,7 +160,7 @@ describe("cancelling the workflow itself", () => {
 
   describe("workflow catches the cancellation and runs a cleanup activity", () => {
     it("cleanup inside CancellationScope.nonCancellable: cleanup runs, workflow swallows the cancel and COMPLETES", async () => {
-      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartbeatingHonouringCancel", true);
+      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartBeatingHonouringCancel", true);
 
       expect(probe.cleanupCalls).toBe(1);
       expect(r.outcome).toBe("completed: cleanup");
@@ -168,7 +168,7 @@ describe("cancelling the workflow itself", () => {
     });
 
     it("cleanup in the cancelled scope: cleanup activity never runs, workflow ends CANCELLED", async () => {
-      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartbeatingHonouringCancel", false);
+      const r = await runWithCleanup("WAIT_CANCELLATION_COMPLETED", "heartBeatingHonouringCancel", false);
 
       expect(probe.cleanupCalls).toBe(0);
       expect(r.outcome).toBe("cancelled");

@@ -21,7 +21,7 @@ export async function slow(ms: number): Promise<string> {
  * (heartbeats are how an activity learns about it), then calls the HTTP endpoint anyway, knowing
  * the signal is aborted and without passing it to `fetch`.
  */
-export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<string> {
+export async function heartBeatingWithIgnoringCancelSignal(ms: number): Promise<string> {
   probe.started.resolve();
   const timer = setInterval(() => heartbeat(), 200);
   try {
@@ -43,7 +43,7 @@ export async function heartbeatingWithIgnoringCancelSignal(ms: number): Promise<
 }
 
 /** Heartbeats in the background while a slow HTTP call runs, and aborts that call on cancellation. */
-export async function heartbeatingHonouringCancel(ms: number): Promise<string> {
+export async function heartBeatingHonouringCancel(ms: number): Promise<string> {
   probe.started.resolve();
   const timer = setInterval(() => heartbeat(), 200);
   try {
