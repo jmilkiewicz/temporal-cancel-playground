@@ -1,5 +1,5 @@
 {
-  "name": "temporal-playground",
+  "name": "temporal-cancellation-playground",
   "version": "1.0.0",
   "private": true,
   "type": "commonjs",
@@ -7,10 +7,6 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "start:worker": "tsx src/worker.ts",
-    "start:client": "tsx src/client.ts",
-    "server:up": "docker compose up -d",
-    "server:down": "docker compose down",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
